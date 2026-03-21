@@ -68,28 +68,24 @@ body { background:#1a1008; overflow:hidden; font-family:'Georgia',serif; }
 // Put your images in a folder called "photos/" next to this file.
 // If you have fewer photos than frames, the remaining frames show placeholders.
 const PHOTO_PATHS = [
-  // Spawn Room (frames 0-3)
+  // Entry (0-3)
   "photos/01.jpeg","photos/02.jpeg","photos/03.jpeg","photos/04.jpg",
-
-  // Main Room (frames 4-11)
-  "photos/05.jpg","photos/06.jpg","photos/07.jpg","photos/08.jpg",
-  "photos/09.jpg","photos/10.jpg","photos/11.jpg","photos/12.jpg",
-
-  // Left Room — west wall x3, north wall x4, south wall x4 (frames 12-22)
-  "photos/13.jpg","photos/14.jpg","photos/15.jpg",
-  "photos/16.jpg","photos/17.jpg","photos/18.jpg","photos/19.jpg",
-  "photos/20.jpg","photos/21.jpg","photos/22.jpg","photos/23.jpg",
-
-  // Right Room — east wall x3, north wall x4, south wall x4 (frames 23-33)
-  "photos/24.jpg","photos/25.jpg","photos/26.jpg",
-  "photos/27.jpg","photos/28.jpg","photos/29.jpg","photos/30.jpg",
-  "photos/31.jpeg","photos/32.jpg","photos/33.jpg","photos/34.jpg",
-
-  // Back Room — west x2, east x2, south wall x3 + hero (frames 34-41)
-  "photos/35.jpg","photos/36.jpg",
-  "photos/37.jpg","photos/38.jpg",
-  "photos/39.jpg","photos/40.jpg","photos/41.jpg",
-  "photos/42.jpeg", // hero frame
+  // Main gallery (4-9)
+  "photos/05.jpg","photos/06.jpg","photos/07.jpg",
+  "photos/08.jpg","photos/09.jpg","photos/10.jpg",
+  // Left gallery — west x3, north x4, south x4 (10-20)
+  "photos/11.jpg","photos/12.jpg","photos/13.jpg",
+  "photos/14.jpg","photos/15.jpg","photos/16.jpg","photos/17.jpg",
+  "photos/18.jpg","photos/19.jpg","photos/20.jpg","photos/21.jpg",
+  // Right gallery — east x3, north x4, south x4 (21-31)
+  "photos/22.jpg","photos/23.jpg","photos/24.jpg",
+  "photos/25.jpg","photos/26.jpg","photos/27.jpg","photos/28.jpg",
+  "photos/29.jpg","photos/30.jpg","photos/32.jpg","photos/33.jpg",
+  // Back room — west x2, east x2, south x2 + hero (32-39)
+  "photos/34.jpg","photos/35.jpg",
+  "photos/36.jpg","photos/37.jpg",
+  "photos/38.jpg","photos/39.jpg",
+  "photos/31.jpeg", // hero frame
 ];
 // Music paths — put your MP3s in a folder called "music/" next to this file.
 // They will play in order and loop indefinitely.
@@ -112,9 +108,9 @@ renderer.physicallyCorrectLights = true;
 const scene = new THREE.Scene();
 // Soft warm-grey fog matching the reference image feel
 scene.background = new THREE.Color(0xe8e4de);
-scene.fog = new THREE.FogExp2(0xe8e4de, 0.026);
+scene.fog = new THREE.FogExp2(0xe8e4de, 0.018);
 
-const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.05, 80);
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.05, 120);
 // Spawn INSIDE entry hall, facing INTO museum
 camera.position.set(0, 1.7, 4.2);
 
@@ -344,55 +340,73 @@ const FW=1.55, FH=1.16, FB=.06, FD=.036, FY=2.08;
 const EPS=.022; // nudge off wall to prevent z-fighting
 
 const FRAMES=[
-  // ══ ENTRY HALL — east + west walls only, evenly spaced along z=-2 to z=5.5 ══
+  // ══ ENTRY HALL (x:-4.5→4.5, z:-2→5.5) ══
+  // West wall x=-4.5, East wall x=4.5
   {wx:-4.5, wz: 3.5, ry: Math.PI/2,  label:"We're so cute (I'm taller mwehehe)"},
   {wx:-4.5, wz: 0.5, ry: Math.PI/2,  label:"Flowers for my favorite human"},
   {wx: 4.5, wz: 3.5, ry:-Math.PI/2,  label:"The moment I knew I was going to fall in love"},
   {wx: 4.5, wz: 0.5, ry:-Math.PI/2,  label:"Errm.. Actually.."},
 
-  // ══ MAIN GALLERY ══
-  // All 4 walls have passages so only E+W are usable (between the side passage gaps)
-  // Passage to side galleries: z=-9.5 to z=-12.5 — frames stay outside that range
-  {wx:-6.5, wz:-4.5, ry: Math.PI/2,  label:"Somewhere cold and beautiful"},
-  {wx:-6.5, wz:-7.8, ry: Math.PI/2,  label:"That trip we almost didn't take"},
-  {wx:-6.5, wz:-13.8,ry: Math.PI/2,  label:"Your laugh that started everything"},
-  {wx:-6.5, wz:-16.8,ry: Math.PI/2,  label:"The long drive home"},
-  {wx: 6.5, wz:-4.5, ry:-Math.PI/2,  label:"A Sunday morning"},
-  {wx: 6.5, wz:-7.8, ry:-Math.PI/2,  label:"The way you look at the sea"},
-  {wx: 6.5, wz:-13.8,ry:-Math.PI/2,  label:"You, always golden hour"},
-  {wx: 6.5, wz:-16.8,ry:-Math.PI/2,  label:"The night we stayed up talking"},
+  // ══ MAIN GALLERY (x:-6.5→6.5, z:-18→-2) ══
+  // Passage to side galleries: x=±6.5, centred at z=-13, gap z=-14.5 to z=-11.5
+  // Safe zones on E/W walls: z=-2 to z=-11.5 (upper) and z=-14.5 to z=-18 (lower)
+  // Upper zone 9.5 units: place at z=-4.5 and z=-8.5
+  // Lower zone 3.5 units: place at z=-16.0 only (one frame fits safely)
+  {wx:-6.5, wz: -4.5, ry: Math.PI/2,  label:"Somewhere cold and beautiful"},
+  {wx:-6.5, wz: -8.5, ry: Math.PI/2,  label:"That trip we almost didn't take"},
+  {wx:-6.5, wz:-16.0, ry: Math.PI/2,  label:"Your laugh that started everything"},
+  {wx: 6.5, wz: -4.5, ry:-Math.PI/2,  label:"A Sunday morning"},
+  {wx: 6.5, wz: -8.5, ry:-Math.PI/2,  label:"The way you look at the sea"},
+  {wx: 6.5, wz:-16.0, ry:-Math.PI/2,  label:"The long drive home"},
 
-  // ══ LEFT GALLERY (entrance = east wall x=-6.5) ══
-  // Paint: west (outer), north, south walls only
-  {wx:-18.0, wz:-7.5, ry: Math.PI/2,  label:"Dancing in the kitchen"},
-  {wx:-18.0, wz:-11.0,ry: Math.PI/2,  label:"The secret garden"},
-  {wx:-18.0, wz:-14.5,ry: Math.PI/2,  label:"Somewhere we'd never been"},
-  // North wall z=-6: faces INTO room = south = ry=Math.PI
-  {wx:-15.0, wz:-6.0, ry: Math.PI,    label:"Three years and counting"},
-  {wx:-10.0, wz:-6.0, ry: Math.PI,    label:"The quiet afternoons"},
-  // South wall z=-16: faces INTO room = north = ry=0
-  {wx:-15.0, wz:-16.0,ry: 0,          label:"Still my favourite person"},
-  {wx:-10.0, wz:-16.0,ry: 0,          label:"Everywhere feels like home with you"},
+  // ══ LEFT GALLERY (x:-24→-6.5, z:-22→-4) ══
+  // Entrance: east wall x=-6.5, passage centred z=-13, gap z=-14.5 to z=-11.5
+  // West outer wall x=-24 (ry=PI/2 faces +x into room)
+  {wx:-24.0, wz: -7.0, ry: Math.PI/2,  label:"Dancing in the kitchen"},
+  {wx:-24.0, wz:-13.0, ry: Math.PI/2,  label:"The secret garden"},
+  {wx:-24.0, wz:-19.0, ry: Math.PI/2,  label:"Somewhere we'd never been"},
+  // North wall z=-4 (ry=Math.PI faces -z into room, i.e. south)
+  // Room x range: -24 to -6.5, avoid edges, spread 4 frames evenly
+  {wx:-21.0, wz:-4.0, ry: Math.PI,    label:"Three years and counting"},
+  {wx:-16.5, wz:-4.0, ry: Math.PI,    label:"The quiet afternoons"},
+  {wx:-12.0, wz:-4.0, ry: Math.PI,    label:"Every road that led to you"},
+  {wx: -8.5, wz:-4.0, ry: Math.PI,    label:"The moment everything shifted"},
+  // South wall z=-22 (ry=0 faces +z into room, i.e. north)
+  {wx:-21.0, wz:-22.0, ry: 0,          label:"Still my favourite person"},
+  {wx:-16.5, wz:-22.0, ry: 0,          label:"Everywhere feels like home with you"},
+  {wx:-12.0, wz:-22.0, ry: 0,          label:"Somewhere between then and now"},
+  {wx: -8.5, wz:-22.0, ry: 0,          label:"Still choosing you, every time"},
 
-  // ══ RIGHT GALLERY (entrance = west wall x=6.5) ══
-  // Paint: east (outer), north, south walls only
-  {wx: 18.0, wz:-7.5, ry:-Math.PI/2,  label:"Our favourite corner of the city"},
-  {wx: 18.0, wz:-11.0,ry:-Math.PI/2,  label:"Summer, unplanned"},
-  {wx: 18.0, wz:-14.5,ry:-Math.PI/2,  label:"Where we always end up"},
-  // North wall z=-6: faces INTO room = south = ry=Math.PI
-  {wx: 15.0, wz:-6.0, ry: Math.PI,    label:"The best decision I ever made"},
-  {wx: 10.0, wz:-6.0, ry: Math.PI,    label:"Golden hour, every hour"},
-  // South wall z=-16: faces INTO room = north = ry=0
-  {wx: 15.0, wz:-16.0,ry: 0,          label:"Every ordinary day with you"},
-  {wx: 10.0, wz:-16.0,ry: 0,          label:"The longest conversations"},
+  // ══ RIGHT GALLERY (x:6.5→24, z:-22→-4) ══
+  // Entrance: west wall x=6.5, passage centred z=-13, gap z=-14.5 to z=-11.5
+  // East outer wall x=24 (ry=-PI/2 faces -x into room)
+  {wx: 24.0, wz: -7.0, ry:-Math.PI/2,  label:"Our favourite corner of the city"},
+  {wx: 24.0, wz:-13.0, ry:-Math.PI/2,  label:"Summer, unplanned"},
+  {wx: 24.0, wz:-19.0, ry:-Math.PI/2,  label:"Where we always end up"},
+  // North wall z=-4 (ry=Math.PI)
+  {wx: 21.0, wz:-4.0, ry: Math.PI,    label:"The best decision I ever made"},
+  {wx: 16.5, wz:-4.0, ry: Math.PI,    label:"Golden hour, every hour"},
+  {wx: 12.0, wz:-4.0, ry: Math.PI,    label:"The longest conversations"},
+  {wx:  8.5, wz:-4.0, ry: Math.PI,    label:"Every ordinary day with you"},
+  // South wall z=-22 (ry=0)
+  {wx: 21.0, wz:-22.0, ry: 0,          label:"Side by side, always"},
+  {wx: 16.5, wz:-22.0, ry: 0,          label:"Where it all began"},
+  {wx: 12.0, wz:-22.0, ry: 0,          label:"Our favourite adventure"},
+  {wx:  8.5, wz:-22.0, ry: 0,          label:"The trip that changed us"},
 
-  // ══ BACK / MEMORIES ROOM (entrance = north wall z=-18) ══
-  // Paint: south (hero), east, west walls only
-  {wx:-6.0,  wz:-20.0,ry: Math.PI/2,  label:"Where it all began"},
-  {wx:-6.0,  wz:-22.5,ry: Math.PI/2,  label:"Our favourite adventure"},
-  {wx: 6.0,  wz:-20.0,ry:-Math.PI/2,  label:"The middle of all of it"},
-  {wx: 6.0,  wz:-22.5,ry:-Math.PI/2,  label:"The trip that changed us"},
-  {wx: 0,    wz:-24.49,ry: Math.PI,    label:"You & Me \u2014 Forever", hero:true},
+  // ══ BACK / MEMORIES ROOM (x:-8→8, z:-32→-18) ══
+  // Entrance: north wall z=-18
+  // West wall x=-8 (ry=PI/2 faces +x into room)
+  {wx:-8.0, wz:-22.0, ry: Math.PI/2,  label:"The middle of all of it"},
+  {wx:-8.0, wz:-28.0, ry: Math.PI/2,  label:"You make everywhere feel like home"},
+  // East wall x=8 (ry=-PI/2 faces -x into room)
+  {wx: 8.0, wz:-22.0, ry:-Math.PI/2,  label:"Every photograph tells our story"},
+  {wx: 8.0, wz:-28.0, ry:-Math.PI/2,  label:"The night we stayed up talking"},
+  // South wall z=-32 (ry=0 faces +z into room)
+  // Hero is centred, regular frames flanking — hero slightly in front so it doesn't z-fight
+  {wx:-4.5, wz:-32.0, ry: 0,           label:"Every road that led to you"},
+  {wx: 4.5, wz:-32.0, ry: 0,           label:"Still choosing you, every time"},
+  {wx: 0,   wz:-32.0, ry: 0,           label:"You & Me \u2014 Forever", hero:true},
 ];
 
 const frameObjs=[], photoMats=[];
@@ -531,9 +545,9 @@ function resolveMove(ox,oz,nx,nz){
       }
     }
   }
-  // Hard outer bounds — player can never leave the museum footprint entirely
-  nx = Math.max(-17.6, Math.min(17.6, nx));
-  nz = Math.max(-24.1, Math.min(5.1,  nz));
+  // Hard outer bounds — player can never leave the museum footprint
+  nx = Math.max(-23.6, Math.min(23.6, nx));
+  nz = Math.max(-31.6, Math.min(5.1,  nz));
   return [nx,nz];
 }
 
