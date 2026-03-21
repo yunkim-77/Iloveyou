@@ -154,13 +154,17 @@ const skylightPositions = [
   [-2, RH-.08, -7.5],[2, RH-.08, -7.5],
   [-2, RH-.08,-11],  [2, RH-.08,-11],
   [-2, RH-.08,-14.5],[2, RH-.08,-14.5],
-  // Left gallery (expanded z=-22 to -4)
-  [-15, RH-.08, -7],[-15, RH-.08,-13],[-15, RH-.08,-19],
-  // Right gallery (expanded)
-  [ 15, RH-.08, -7],[ 15, RH-.08,-13],[ 15, RH-.08,-19],
-  // Back room (expanded z=-32 to -18)
-  [-3, RH-.08,-22],  [3, RH-.08,-22],
-  [-3, RH-.08,-27],  [3, RH-.08,-27],
+  // Left gallery (x:-30 to -6.5, z:-18 to -2)
+  [-13, RH-.08, -5], [-13, RH-.08,-10], [-13, RH-.08,-15],
+  [-20, RH-.08, -5], [-20, RH-.08,-10], [-20, RH-.08,-15],
+  [-27, RH-.08, -5], [-27, RH-.08,-10], [-27, RH-.08,-15],
+  // Right gallery
+  [ 13, RH-.08, -5], [ 13, RH-.08,-10], [ 13, RH-.08,-15],
+  [ 20, RH-.08, -5], [ 20, RH-.08,-10], [ 20, RH-.08,-15],
+  [ 27, RH-.08, -5], [ 27, RH-.08,-10], [ 27, RH-.08,-15],
+  // Back room
+  [-3, RH-.08,-22], [3, RH-.08,-22],
+  [-3, RH-.08,-27], [3, RH-.08,-27],
 ];
 
 // Skylight glow panels on ceiling (emissive white rectangles)
@@ -184,17 +188,17 @@ skylightPositions.forEach(([x,y,z])=>{
 // ╚══════════════════════════════════════════════════════════════╝
 const PASSAGES = [
   {axis:'z', wc: -2.0, ca:  0,   ow: 3.2},  // entry → main
-  {axis:'x', wc: -6.5, ca:-13.0, ow: 3.0},  // main → left  (centre of expanded gallery)
-  {axis:'x', wc:  6.5, ca:-13.0, ow: 3.0},  // main → right
+  {axis:'x', wc: -6.5, ca:-10.0, ow: 3.0},  // main → left
+  {axis:'x', wc:  6.5, ca:-10.0, ow: 3.0},  // main → right
   {axis:'z', wc:-18.0, ca:  0,   ow: 3.2},  // main → back
 ];
 
 const ROOMS = [
   {x0:-4.5, x1: 4.5, z0:-2.0,  z1: 5.5},   // entry hall
   {x0:-6.5, x1: 6.5, z0:-18.0, z1:-2.0},   // main gallery
-  {x0:-24,  x1:-6.5, z0:-22.0, z1:-4.0},   // left gallery  (expanded: 17.5w × 18d)
-  {x0: 6.5, x1: 24,  z0:-22.0, z1:-4.0},   // right gallery (expanded)
-  {x0:-8.0, x1: 8.0, z0:-32.0, z1:-18.0},  // memories room (expanded: 16w × 14d)
+  {x0:-30,  x1:-6.5, z0:-18.0, z1:-2.0},   // left gallery  — same z as main, wider x
+  {x0: 6.5, x1: 30,  z0:-18.0, z1:-2.0},   // right gallery — same z as main, wider x
+  {x0:-8.0, x1: 8.0, z0:-32.0, z1:-18.0},  // memories room
 ];
 
 function getPassage(axis, coord, rMin, rMax){
@@ -322,8 +326,8 @@ ROOMS.forEach(r=>{
 // ── Pillars at passage edges ──────────────────────────
 [
   [-1.7,-2],[1.7,-2],           // entry→main
-  [-6.5,-11.5],[-6.5,-14.5],   // main→left  (passage centred at z=-13)
-  [ 6.5,-11.5],[ 6.5,-14.5],   // main→right
+  [-6.5,-8.5],[-6.5,-11.5],    // main→left  (passage centred at z=-10)
+  [ 6.5,-8.5],[ 6.5,-11.5],    // main→right
   [-1.7,-18],[1.7,-18],         // main→back
 ].forEach(([px,pz])=>{
   const cyl=new THREE.Mesh(new THREE.CylinderGeometry(.11,.14,RH,10),MPI);
@@ -335,7 +339,7 @@ ROOMS.forEach(r=>{
 });
 
 // ── Benches ───────────────────────────────────────────
-[[0,-8.2],[0,-13.8],[-15,-13],[ 15,-13],[0,-25]].forEach(([bx,bz])=>{
+[[0,-8.2],[0,-13.8],[-18,-10],[ 18,-10],[0,-25]].forEach(([bx,bz])=>{
   const top=new THREE.Mesh(new THREE.BoxGeometry(1.8,.08,.38),MBN);
   top.position.set(bx,.43,bz); scene.add(top);
   [-.72,.72].forEach(lx=>[-.10,.10].forEach(lz=>{
@@ -352,72 +356,64 @@ const EPS=.022; // nudge off wall to prevent z-fighting
 
 const FRAMES=[
   // ══ ENTRY HALL (x:-4.5→4.5, z:-2→5.5) ══
-  // West wall x=-4.5, East wall x=4.5
   {wx:-4.5, wz: 3.5, ry: Math.PI/2,  label:"We're so cute (I'm taller mwehehe)"},
   {wx:-4.5, wz: 0.5, ry: Math.PI/2,  label:"Flowers for my favorite human"},
-  {wx: 4.5, wz: 3.5, ry:-Math.PI/2,  label:"The moment I knew I was going to fall in love"},
+  {wx: 4.5, wz: 3.5, ry:-Math.PI/2,  label:"The moment I knew"},
   {wx: 4.5, wz: 0.5, ry:-Math.PI/2,  label:"Errm.. Actually.."},
 
   // ══ MAIN GALLERY (x:-6.5→6.5, z:-18→-2) ══
-  // Passage to side galleries: x=±6.5, centred at z=-13, gap z=-14.5 to z=-11.5
-  // Safe zones on E/W walls: z=-2 to z=-11.5 (upper) and z=-14.5 to z=-18 (lower)
-  // Upper zone 9.5 units: place at z=-4.5 and z=-8.5
-  // Lower zone 3.5 units: place at z=-16.0 only (one frame fits safely)
+  // Passage gap z=-11.5 to z=-8.5. Safe: above z=-8.5 and below z=-11.5
   {wx:-6.5, wz: -4.5, ry: Math.PI/2,  label:"Somewhere cold and beautiful"},
-  {wx:-6.5, wz: -8.5, ry: Math.PI/2,  label:"That trip we almost didn't take"},
-  {wx:-6.5, wz:-16.0, ry: Math.PI/2,  label:"Your laugh that started everything"},
+  {wx:-6.5, wz: -7.0, ry: Math.PI/2,  label:"That trip we almost didn't take"},
+  {wx:-6.5, wz:-13.5, ry: Math.PI/2,  label:"Your laugh that started everything"},
+  {wx:-6.5, wz:-16.5, ry: Math.PI/2,  label:"The long drive home"},
   {wx: 6.5, wz: -4.5, ry:-Math.PI/2,  label:"A Sunday morning"},
-  {wx: 6.5, wz: -8.5, ry:-Math.PI/2,  label:"The way you look at the sea"},
-  {wx: 6.5, wz:-16.0, ry:-Math.PI/2,  label:"The long drive home"},
+  {wx: 6.5, wz: -7.0, ry:-Math.PI/2,  label:"The way you look at the sea"},
+  {wx: 6.5, wz:-13.5, ry:-Math.PI/2,  label:"You, always golden hour"},
+  {wx: 6.5, wz:-16.5, ry:-Math.PI/2,  label:"The night we stayed up talking"},
 
-  // ══ LEFT GALLERY (x:-24→-6.5, z:-22→-4) ══
-  // Entrance: east wall x=-6.5, passage centred z=-13, gap z=-14.5 to z=-11.5
-  // West outer wall x=-24 (ry=PI/2 faces +x into room)
-  {wx:-24.0, wz: -7.0, ry: Math.PI/2,  label:"Dancing in the kitchen"},
-  {wx:-24.0, wz:-13.0, ry: Math.PI/2,  label:"The secret garden"},
-  {wx:-24.0, wz:-19.0, ry: Math.PI/2,  label:"Somewhere we'd never been"},
-  // North wall z=-4 (ry=Math.PI faces -z into room, i.e. south)
-  // Room x range: -24 to -6.5, avoid edges, spread 4 frames evenly
-  {wx:-21.0, wz:-4.0, ry: Math.PI,    label:"Three years and counting"},
-  {wx:-16.5, wz:-4.0, ry: Math.PI,    label:"The quiet afternoons"},
-  {wx:-12.0, wz:-4.0, ry: Math.PI,    label:"Every road that led to you"},
-  {wx: -8.5, wz:-4.0, ry: Math.PI,    label:"The moment everything shifted"},
-  // South wall z=-22 (ry=0 faces +z into room, i.e. north)
-  {wx:-21.0, wz:-22.0, ry: 0,          label:"Still my favourite person"},
-  {wx:-16.5, wz:-22.0, ry: 0,          label:"Everywhere feels like home with you"},
-  {wx:-12.0, wz:-22.0, ry: 0,          label:"Somewhere between then and now"},
-  {wx: -8.5, wz:-22.0, ry: 0,          label:"Still choosing you, every time"},
+  // ══ LEFT GALLERY (x:-30→-6.5, z:-18→-2) ══
+  // Entrance: east wall x=-6.5, passage centred z=-10, gap z=-11.5 to z=-8.5
+  // West outer wall x=-30
+  {wx:-30.0, wz: -5.0, ry: Math.PI/2,  label:"Dancing in the kitchen"},
+  {wx:-30.0, wz:-10.0, ry: Math.PI/2,  label:"The secret garden"},
+  {wx:-30.0, wz:-15.0, ry: Math.PI/2,  label:"Somewhere we'd never been"},
+  // North wall z=-2 (ry=Math.PI faces south into room)
+  {wx:-27.0, wz:-2.0, ry: Math.PI,     label:"Three years and counting"},
+  {wx:-22.0, wz:-2.0, ry: Math.PI,     label:"The quiet afternoons"},
+  {wx:-16.0, wz:-2.0, ry: Math.PI,     label:"Every road that led to you"},
+  {wx:-10.5, wz:-2.0, ry: Math.PI,     label:"The moment everything shifted"},
+  // South wall z=-18 (ry=0 faces north into room)
+  {wx:-27.0, wz:-18.0, ry: 0,           label:"Still my favourite person"},
+  {wx:-22.0, wz:-18.0, ry: 0,           label:"Everywhere feels like home with you"},
+  {wx:-16.0, wz:-18.0, ry: 0,           label:"Somewhere between then and now"},
+  {wx:-10.5, wz:-18.0, ry: 0,           label:"Still choosing you, every time"},
 
-  // ══ RIGHT GALLERY (x:6.5→24, z:-22→-4) ══
-  // Entrance: west wall x=6.5, passage centred z=-13, gap z=-14.5 to z=-11.5
-  // East outer wall x=24 (ry=-PI/2 faces -x into room)
-  {wx: 24.0, wz: -7.0, ry:-Math.PI/2,  label:"Our favourite corner of the city"},
-  {wx: 24.0, wz:-13.0, ry:-Math.PI/2,  label:"Summer, unplanned"},
-  {wx: 24.0, wz:-19.0, ry:-Math.PI/2,  label:"Where we always end up"},
-  // North wall z=-4 (ry=Math.PI)
-  {wx: 21.0, wz:-4.0, ry: Math.PI,    label:"The best decision I ever made"},
-  {wx: 16.5, wz:-4.0, ry: Math.PI,    label:"Golden hour, every hour"},
-  {wx: 12.0, wz:-4.0, ry: Math.PI,    label:"The longest conversations"},
-  {wx:  8.5, wz:-4.0, ry: Math.PI,    label:"Every ordinary day with you"},
-  // South wall z=-22 (ry=0)
-  {wx: 21.0, wz:-22.0, ry: 0,          label:"Side by side, always"},
-  {wx: 16.5, wz:-22.0, ry: 0,          label:"Where it all began"},
-  {wx: 12.0, wz:-22.0, ry: 0,          label:"Our favourite adventure"},
-  {wx:  8.5, wz:-22.0, ry: 0,          label:"The trip that changed us"},
+  // ══ RIGHT GALLERY (x:6.5→30, z:-18→-2) ══
+  // Entrance: west wall x=6.5, passage centred z=-10, gap z=-11.5 to z=-8.5
+  // East outer wall x=30
+  {wx: 30.0, wz: -5.0, ry:-Math.PI/2,  label:"Our favourite corner of the city"},
+  {wx: 30.0, wz:-10.0, ry:-Math.PI/2,  label:"Summer, unplanned"},
+  {wx: 30.0, wz:-15.0, ry:-Math.PI/2,  label:"Where we always end up"},
+  // North wall z=-2 (ry=Math.PI)
+  {wx: 27.0, wz:-2.0, ry: Math.PI,     label:"The best decision I ever made"},
+  {wx: 22.0, wz:-2.0, ry: Math.PI,     label:"Golden hour, every hour"},
+  {wx: 16.0, wz:-2.0, ry: Math.PI,     label:"The longest conversations"},
+  {wx: 10.5, wz:-2.0, ry: Math.PI,     label:"Every ordinary day with you"},
+  // South wall z=-18 (ry=0)
+  {wx: 27.0, wz:-18.0, ry: 0,           label:"Side by side, always"},
+  {wx: 22.0, wz:-18.0, ry: 0,           label:"Where it all began"},
+  {wx: 16.0, wz:-18.0, ry: 0,           label:"Our favourite adventure"},
+  {wx: 10.5, wz:-18.0, ry: 0,           label:"The trip that changed us"},
 
   // ══ BACK / MEMORIES ROOM (x:-8→8, z:-32→-18) ══
-  // Entrance: north wall z=-18
-  // West wall x=-8 (ry=PI/2 faces +x into room)
-  {wx:-8.0, wz:-22.0, ry: Math.PI/2,  label:"The middle of all of it"},
-  {wx:-8.0, wz:-28.0, ry: Math.PI/2,  label:"You make everywhere feel like home"},
-  // East wall x=8 (ry=-PI/2 faces -x into room)
-  {wx: 8.0, wz:-22.0, ry:-Math.PI/2,  label:"Every photograph tells our story"},
-  {wx: 8.0, wz:-28.0, ry:-Math.PI/2,  label:"The night we stayed up talking"},
-  // South wall z=-32 (ry=0 faces +z into room)
-  // Hero is centred, regular frames flanking — hero slightly in front so it doesn't z-fight
-  {wx:-4.5, wz:-32.0, ry: 0,           label:"Every road that led to you"},
-  {wx: 4.5, wz:-32.0, ry: 0,           label:"Still choosing you, every time"},
-  {wx: 0,   wz:-32.0, ry: 0,           label:"You & Me \u2014 Forever", hero:true},
+  {wx:-8.0, wz:-22.0, ry: Math.PI/2,   label:"The middle of all of it"},
+  {wx:-8.0, wz:-28.0, ry: Math.PI/2,   label:"You make everywhere feel like home"},
+  {wx: 8.0, wz:-22.0, ry:-Math.PI/2,   label:"Every photograph tells our story"},
+  {wx: 8.0, wz:-28.0, ry:-Math.PI/2,   label:"The night we stayed up talking"},
+  {wx:-4.5, wz:-32.0, ry: 0,            label:"Every road that led to you"},
+  {wx: 4.5, wz:-32.0, ry: 0,            label:"Still choosing you, every time"},
+  {wx: 0,   wz:-32.0, ry: 0,            label:"You & Me \u2014 Forever", hero:true},
 ];
 
 const frameObjs=[], photoMats=[];
@@ -557,7 +553,7 @@ function resolveMove(ox,oz,nx,nz){
     }
   }
   // Hard outer bounds — player can never leave the museum footprint
-  nx = Math.max(-23.6, Math.min(23.6, nx));
+  nx = Math.max(-29.6, Math.min(29.6, nx));
   nz = Math.max(-31.6, Math.min(5.1,  nz));
   return [nx,nz];
 }
