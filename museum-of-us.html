@@ -68,7 +68,7 @@ body { background:#1a1008; overflow:hidden; font-family:'Georgia',serif; }
 // Put your images in a folder called "photos/" next to this file.
 // If you have fewer photos than frames, the remaining frames show placeholders.
 const PHOTO_PATHS = [
-  "photos/01.jpg","photos/02.jpg","photos/03.jpg","photos/04.jpg",
+  "photos/01.jpeg","photos/02.jpeg","photos/03.jpeg","photos/04.jpg",
   "photos/05.jpg","photos/06.jpg","photos/07.jpg","photos/08.jpg",
   "photos/09.jpg","photos/10.jpg","photos/11.jpg","photos/12.jpg",
   "photos/13.jpg","photos/14.jpg","photos/15.jpg","photos/16.jpg",
@@ -77,9 +77,7 @@ const PHOTO_PATHS = [
   "photos/25.jpg","photos/26.jpg","photos/27.jpg","photos/28.jpg",
   "photos/29.jpg","photos/30.jpg","photos/31.jpg","photos/32.jpg",
   "photos/33.jpg",
-];
-
-// Music paths — put your MP3s in a folder called "music/" next to this file.
+];// Music paths — put your MP3s in a folder called "music/" next to this file.
 // They will play in order and loop indefinitely.
 const MUSIC_PATHS = [
   "music/01.mp3",
@@ -168,31 +166,7 @@ skylightPositions.forEach(([x,y,z])=>{
   // Thin grid lines on ceiling panel
 });
 
-// Picture-rail spotlights (warm focused, one per frame area)
-const spotPositions = [
-  // Entry
-  [-4.0, RH-.3, 1.2], [4.0, RH-.3, 1.2],
-  [-4.0, RH-.3,-.7],  [4.0, RH-.3,-.7],
-  // Main gallery walls
-  [-5.0, RH-.3,-4.5], [5.0, RH-.3,-4.5],
-  [-5.0, RH-.3,-8.5], [5.0, RH-.3,-8.5],
-  [-5.0, RH-.3,-12.5],[5.0, RH-.3,-12.5],
-  [-5.0, RH-.3,-16.0],[5.0, RH-.3,-16.0],
-  // Side galleries
-  [-16.5,RH-.3,-7.5], [-16.5,RH-.3,-11],[-16.5,RH-.3,-14.5],
-  [ 16.5,RH-.3,-7.5], [ 16.5,RH-.3,-11],[ 16.5,RH-.3,-14.5],
-  [-12,  RH-.3,-6.4], [12,   RH-.3,-6.4],
-  // Back room
-  [-3.5, RH-.3,-18.4],[3.5,  RH-.3,-18.4],
-  [-5.5, RH-.3,-21.0],[5.5,  RH-.3,-21.0],
-  [0,    RH-.3,-23.5],
-];
-spotPositions.forEach(([x,y,z])=>{
-  const sl = new THREE.SpotLight(0xffeedd, 1.4, 6, Math.PI/5, .65);
-  sl.position.set(x,y,z);
-  sl.target.position.set(x > 0 ? x+1 : x < 0 ? x-1 : x, 0, z);
-  scene.add(sl); scene.add(sl.target);
-});
+
 
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  PASSAGE + ROOM DEFINITIONS                                 ║
@@ -378,20 +352,24 @@ const FRAMES=[
   {wx:-18.0, wz:-7.5, ry: Math.PI/2,  label:"Dancing in the kitchen"},
   {wx:-18.0, wz:-11.0,ry: Math.PI/2,  label:"The secret garden"},
   {wx:-18.0, wz:-14.5,ry: Math.PI/2,  label:"Somewhere we'd never been"},
-  {wx:-15.0, wz:-6.0, ry: 0,           label:"Three years and counting"},
-  {wx:-10.0, wz:-6.0, ry: 0,           label:"The quiet afternoons"},
-  {wx:-15.0, wz:-16.0,ry: Math.PI,     label:"Still my favourite person"},
-  {wx:-10.0, wz:-16.0,ry: Math.PI,     label:"Everywhere feels like home with you"},
+  // North wall z=-6: faces INTO room = south = ry=Math.PI
+  {wx:-15.0, wz:-6.0, ry: Math.PI,    label:"Three years and counting"},
+  {wx:-10.0, wz:-6.0, ry: Math.PI,    label:"The quiet afternoons"},
+  // South wall z=-16: faces INTO room = north = ry=0
+  {wx:-15.0, wz:-16.0,ry: 0,          label:"Still my favourite person"},
+  {wx:-10.0, wz:-16.0,ry: 0,          label:"Everywhere feels like home with you"},
 
   // ══ RIGHT GALLERY (entrance = west wall x=6.5) ══
   // Paint: east (outer), north, south walls only
   {wx: 18.0, wz:-7.5, ry:-Math.PI/2,  label:"Our favourite corner of the city"},
   {wx: 18.0, wz:-11.0,ry:-Math.PI/2,  label:"Summer, unplanned"},
   {wx: 18.0, wz:-14.5,ry:-Math.PI/2,  label:"Where we always end up"},
-  {wx: 15.0, wz:-6.0, ry: 0,           label:"The best decision I ever made"},
-  {wx: 10.0, wz:-6.0, ry: 0,           label:"Golden hour, every hour"},
-  {wx: 15.0, wz:-16.0,ry: Math.PI,     label:"Every ordinary day with you"},
-  {wx: 10.0, wz:-16.0,ry: Math.PI,     label:"The longest conversations"},
+  // North wall z=-6: faces INTO room = south = ry=Math.PI
+  {wx: 15.0, wz:-6.0, ry: Math.PI,    label:"The best decision I ever made"},
+  {wx: 10.0, wz:-6.0, ry: Math.PI,    label:"Golden hour, every hour"},
+  // South wall z=-16: faces INTO room = north = ry=0
+  {wx: 15.0, wz:-16.0,ry: 0,          label:"Every ordinary day with you"},
+  {wx: 10.0, wz:-16.0,ry: 0,          label:"The longest conversations"},
 
   // ══ BACK / MEMORIES ROOM (entrance = north wall z=-18) ══
   // Paint: south (hero), east, west walls only
@@ -447,6 +425,14 @@ function buildFrame(def,idx){
     const bar=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,FD),MFR);
     bar.position.set(bx,by,bz2); g.add(bar);
   });
+
+  // Per-frame spotlight — mounted above the frame in local space, aimed at photo centre.
+  // Local coords: light sits above (+y) and slightly out from wall (+z), target at origin.
+  const spot = new THREE.SpotLight(0xfff0cc, 1.6, 5.5, Math.PI/7, 0.45);
+  spot.position.set(0, fh/2 + 1.9, 0.7);
+  spot.target.position.set(0, 0, 0);
+  g.add(spot);
+  g.add(spot.target);
 
   // Nudge group off wall along wall-normal (sin/cos of ry)
   const sn=Math.sin(def.ry), cs=Math.cos(def.ry);
