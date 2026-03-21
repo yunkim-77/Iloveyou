@@ -330,11 +330,11 @@ const FW=1.55, FH=1.16, FB=.06, FD=.036, FY=2.08;
 const EPS=.022; // nudge off wall to prevent z-fighting
 
 const FRAMES=[
-  // ══ ENTRY HALL — east + west walls only (4 frames, no changes) ══
-  {wx:-4.5, wz: 1.3, ry: Math.PI/2,  label:"The beginning of everything"},
-  {wx:-4.5, wz:-0.6, ry: Math.PI/2,  label:"Us, before we knew it was us"},
-  {wx: 4.5, wz: 1.3, ry:-Math.PI/2,  label:"That first smile"},
-  {wx: 4.5, wz:-0.6, ry:-Math.PI/2,  label:"The day I knew"},
+  // ══ ENTRY HALL — east + west walls only, evenly spaced along z=-2 to z=5.5 ══
+  {wx:-4.5, wz: 3.5, ry: Math.PI/2,  label:"The beginning of everything"},
+  {wx:-4.5, wz: 0.5, ry: Math.PI/2,  label:"Us, before we knew it was us"},
+  {wx: 4.5, wz: 3.5, ry:-Math.PI/2,  label:"That first smile"},
+  {wx: 4.5, wz: 0.5, ry:-Math.PI/2,  label:"The day I knew"},
 
   // ══ MAIN GALLERY ══
   // All 4 walls have passages so only E+W are usable (between the side passage gaps)
@@ -434,24 +434,25 @@ function buildFrame(def,idx){
   spot.target.position.set(0,0,0);
   g.add(spot); g.add(spot.target);
 
-  // Resize photo plane + frame bars to fit image aspect ratio within MAX_W x MAX_H
+  // Resize photo + frame bars to match image aspect ratio, fitted within MAX_W x MAX_H
   function applyAspect(imgW, imgH){
     const aspect=imgW/imgH;
     let fw, fh;
     if(aspect >= MAX_W/MAX_H){ fw=MAX_W; fh=MAX_W/aspect; }
     else                      { fh=MAX_H; fw=MAX_H*aspect; }
-    photo.geometry.dispose();
-    photo.geometry=new THREE.PlaneGeometry(fw,fh);
-    const sizes=[
-      [fw+fb*2, fb,       0,          fh/2+fb/2],
-      [fw+fb*2, fb,       0,         -fh/2-fb/2],
-      [fb,      fh+fb*2, -fw/2-fb/2,  0        ],
-      [fb,      fh+fb*2,  fw/2+fb/2,  0        ],
+    // Scale the photo mesh directly — simpler and more reliable than swapping geometry
+    photo.scale.set(fw/MAX_W, fh/MAX_H, 1);
+    // Reposition + rescale each frame bar
+    const newSizes=[
+      {w:fw+fb*2, h:fb,       x:0,          y:fh/2+fb/2},  // top
+      {w:fw+fb*2, h:fb,       x:0,          y:-fh/2-fb/2}, // bottom
+      {w:fb,      h:fh+fb*2,  x:-fw/2-fb/2, y:0},          // left
+      {w:fb,      h:fh+fb*2,  x: fw/2+fb/2, y:0},          // right
     ];
     bars.forEach((bar,i)=>{
-      bar.geometry.dispose();
-      bar.geometry=new THREE.BoxGeometry(sizes[i][0],sizes[i][1],FD);
-      bar.position.set(sizes[i][2],sizes[i][3],bz);
+      bar.scale.set(newSizes[i].w / (i<2 ? MAX_W+fb*2 : fb),
+                    newSizes[i].h / (i<2 ? fb : MAX_H+fb*2), 1);
+      bar.position.set(newSizes[i].x, newSizes[i].y, bz);
     });
     spot.position.set(0, fh/2+1.9, 0.7);
   }
