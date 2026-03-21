@@ -219,6 +219,13 @@ function split(lo, hi, p){
 // ╚══════════════════════════════════════════════════════════════╝
 const doorH=2.8, headH=RH-doorH;
 
+// Track drawn wall planes to avoid z-fighting at shared room edges
+const drawnWalls = new Set();
+
+function wallKey(coord, axis, seg){
+  return `${axis}_${coord.toFixed(2)}_${seg[0].toFixed(2)}_${seg[1].toFixed(2)}`;
+}
+
 function addPlane(w,h, x,y,z, ry, mat){
   const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
   m.position.set(x,y,z); m.rotation.y=ry; scene.add(m);
@@ -239,6 +246,7 @@ ROOMS.forEach(r=>{
   ;(()=>{
     const p=getPassage('z',z0,x0,x1);
     split(x0,x1,p).forEach(([a,b])=>{
+      const k=wallKey(z0,'z',[a,b]); if(drawnWalls.has(k)) return; drawnWalls.add(k);
       const sw=b-a, mx=(a+b)/2;
       addPlane(sw,RH, mx,RH/2,z0, 0,MW);
       addPlane(sw,.16, mx,.08,z0, 0,MM);
@@ -257,6 +265,7 @@ ROOMS.forEach(r=>{
   ;(()=>{
     const p=getPassage('z',z1,x0,x1);
     split(x0,x1,p).forEach(([a,b])=>{
+      const k=wallKey(z1,'z',[a,b]); if(drawnWalls.has(k)) return; drawnWalls.add(k);
       const sw=b-a, mx=(a+b)/2;
       addPlane(sw,RH, mx,RH/2,z1, Math.PI,MW);
       addPlane(sw,.16, mx,.08,z1, Math.PI,MM);
@@ -275,6 +284,7 @@ ROOMS.forEach(r=>{
   ;(()=>{
     const p=getPassage('x',x0,z0,z1);
     split(z0,z1,p).forEach(([a,b])=>{
+      const k=wallKey(x0,'x',[a,b]); if(drawnWalls.has(k)) return; drawnWalls.add(k);
       const sd=b-a, mz=(a+b)/2;
       addPlane(sd,RH, x0,RH/2,mz, Math.PI/2,MW);
       addPlane(sd,.16, x0,.08,mz, Math.PI/2,MM);
@@ -293,6 +303,7 @@ ROOMS.forEach(r=>{
   ;(()=>{
     const p=getPassage('x',x1,z0,z1);
     split(z0,z1,p).forEach(([a,b])=>{
+      const k=wallKey(x1,'x',[a,b]); if(drawnWalls.has(k)) return; drawnWalls.add(k);
       const sd=b-a, mz=(a+b)/2;
       addPlane(sd,RH, x1,RH/2,mz, -Math.PI/2,MW);
       addPlane(sd,.16, x1,.08,mz, -Math.PI/2,MM);
