@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Museum of Us</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1008; overflow:hidden; font-family:'Georgia',serif; }
+#c { display:block; width:100vw; height:100vh; }
+
+#welcome {
+  position:fixed; inset:0;
+  background:linear-gradient(160deg,#1a0a02,#2e1506 50%,#1a0902);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:100; color:#f0ddb0; text-align:center; padding:2rem;
+  transition:opacity 1.6s;
+}
+.rose { font-size:2.6rem; margin-bottom:.9rem; animation:pulse 2.4s ease-in-out infinite; }
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.09);opacity:.72}}
+#welcome h1 { font-size:clamp(1.9rem,5vw,3.2rem); font-weight:400; letter-spacing:.1em; margin-bottom:.4rem; }
+.sub { font-size:1rem; color:#c49a50; font-style:italic; }
+.divider { width:100px; height:1px; background:linear-gradient(90deg,transparent,#c49a50,transparent); margin:1.3rem auto; }
+#welcome p { max-width:460px; font-size:.93rem; color:#d4a86a; line-height:1.9; margin-bottom:1.7rem; font-style:italic; }
+.hint { font-size:.75rem; color:#8a6820; margin-bottom:1.9rem; line-height:2.0; }
+#btn {
+  background:transparent; border:1px solid #c49a50; color:#f0ddb0;
+  padding:.8rem 2.3rem; font-size:.9rem; font-family:'Georgia',serif;
+  letter-spacing:.18em; cursor:pointer; transition:all .3s; text-transform:uppercase;
+}
+#btn:hover { background:rgba(196,154,80,.16); border-color:#f0ddb0; }
+
+#hud { position:fixed; bottom:1.3rem; left:50%; transform:translateX(-50%); z-index:200; color:#7a6040; font-size:.7rem; text-align:center; letter-spacing:.1em; pointer-events:none; display:none; opacity:.65; }
+#fl { position:fixed; bottom:3rem; left:50%; transform:translateX(-50%); z-index:200; color:#2a1800; font-size:.9rem; text-align:center; font-style:italic; pointer-events:none; opacity:0; transition:opacity .4s; max-width:380px; background:rgba(248,242,232,.92); padding:.35rem 1.1rem; border-radius:18px; border:1px solid #d8c8a8; }
+#xh { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:10px; height:10px; pointer-events:none; z-index:150; opacity:.25; display:none; }
+#xh::before,#xh::after { content:''; position:absolute; background:#3a2008; }
+#xh::before { width:1px; height:100%; left:50%; transform:translateX(-50%); }
+#xh::after  { width:100%; height:1px; top:50%; transform:translateY(-50%); }
+</style>
+</head>
+<body>
+
+<div id="welcome">
+  <div class="rose">&#127801;</div>
+  <h1>Museum of Us</h1>
+  <div class="sub">A gallery dedicated to you &amp; me</div>
+  <div class="divider"></div>
+  <p>"Every photograph is a certificate of presence &mdash; and ours tell the story of something beautiful."</p>
+  <div class="hint">
+    WASD / Arrow Keys &mdash; Walk &nbsp;&middot;&nbsp; Mouse &mdash; Look<br>
+    Click the museum to lock your cursor &nbsp;&middot;&nbsp; ESC to release
+  </div>
+  <button id="btn">Enter the Gallery</button>
+</div>
+
+<div id="fl"></div>
+<div id="xh"></div>
+<div id="hud">WASD / Arrows &mdash; Move &nbsp;&middot;&nbsp; Mouse &mdash; Look</div>
+<canvas id="c"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  CONFIGURATION — edit these to match your files             ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// Photo paths — one per frame in order (relative to this HTML file).
+// Put your images in a folder called "photos/" next to this file.
+// If you have fewer photos than frames, the remaining frames show placeholders.
+const PHOTO_PATHS = [
+  "photos/01.jpg","photos/02.jpg","photos/03.jpg","photos/04.jpg",
+  "photos/05.jpg","photos/06.jpg","photos/07.jpg","photos/08.jpg",
+  "photos/09.jpg","photos/10.jpg","photos/11.jpg","photos/12.jpg",
+  "photos/13.jpg","photos/14.jpg","photos/15.jpg","photos/16.jpg",
+  "photos/17.jpg","photos/18.jpg","photos/19.jpg","photos/20.jpg",
+  "photos/21.jpg","photos/22.jpg","photos/23.jpg","photos/24.jpg",
+  "photos/25.jpg","photos/26.jpg","photos/27.jpg","photos/28.jpg",
+  "photos/29.jpg","photos/30.jpg","photos/31.jpg","photos/32.jpg",
+  "photos/33.jpg",
+];
+
+// Music paths — put your MP3s in a folder called "music/" next to this file.
+// They will play in order and loop indefinitely.
+const MUSIC_PATHS = [
+  "music/01.mp3",
+  "music/02.mp3",
+  "music/03.mp3",
+];
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  RENDERER                                                   ║
+// ╚══════════════════════════════════════════════════════════════╝
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.physicallyCorrectLights = true;
+
+const scene = new THREE.Scene();
+// Soft warm-grey fog matching the reference image feel
+scene.background = new THREE.Color(0xe8e4de);
+scene.fog = new THREE.FogExp2(0xe8e4de, 0.026);
+
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.05, 80);
+// Spawn INSIDE entry hall, facing INTO museum
+camera.position.set(0, 1.7, 4.2);
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  MATERIALS                                                  ║
+// ╚══════════════════════════════════════════════════════════════╝
+function smat(hex, rough=.9, metal=0){
+  return new THREE.MeshStandardMaterial({color:new THREE.Color(hex), roughness:rough, metalness:metal});
+}
+// Soft grey-white walls (like the reference)
+const MW  = smat(0xeae8e4, .94);
+// Warm herringbone-ish parquet floor
+const MF  = smat(0xc8a060, .97);
+// Off-white ceiling
+const MCL = smat(0xf0eeea, 1.0);
+// White baseboard moulding
+const MM  = smat(0xe8e6e0, .75);
+// Gold frame
+const MFR = smat(0xb8920e, .18, .82);
+// Pillar
+const MPI = smat(0xeae6e0, .82);
+// Bench dark wood
+const MBN = smat(0x7a5030, .88);
+
+const RH = 4.2; // room height
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  LIGHTING — soft gallery, skylight feel                     ║
+// ╚══════════════════════════════════════════════════════════════╝
+// Low ambient — walls get most light from skylight panels + spots
+scene.add(new THREE.AmbientLight(0xfff8f0, 0.55));
+
+// Skylight panels (rectangular area-light simulation with multiple soft points)
+// These give the bright ceiling-diffused look from the reference image
+const skylightPositions = [
+  // Entry hall row
+  [-1.5, RH-.08, 2.5], [1.5, RH-.08, 2.5],
+  [-1.5, RH-.08, 0.5], [1.5, RH-.08, 0.5],
+  // Main gallery rows
+  [-2,   RH-.08, -4],  [2,   RH-.08, -4],
+  [-2,   RH-.08, -7.5],[2,   RH-.08, -7.5],
+  [-2,   RH-.08,-11],  [2,   RH-.08,-11],
+  [-2,   RH-.08,-14.5],[2,   RH-.08,-14.5],
+  // Side galleries
+  [-13,  RH-.08, -8],  [-13, RH-.08,-12.5],
+  [ 13,  RH-.08, -8],  [ 13, RH-.08,-12.5],
+  // Back room
+  [-2,   RH-.08,-20],  [2,   RH-.08,-20],
+  [-2,   RH-.08,-22.5],[2,   RH-.08,-22.5],
+];
+
+// Skylight glow panels on ceiling (emissive white rectangles)
+const skylightMat = new THREE.MeshStandardMaterial({
+  color: 0xffffff, emissive: new THREE.Color(0xfff8ee), emissiveIntensity: 1.2, roughness:1
+});
+skylightPositions.forEach(([x,y,z])=>{
+  // Downward soft point
+  const l = new THREE.PointLight(0xfff8ee, 1.1, 10, 2);
+  l.position.set(x, y, z); scene.add(l);
+  // Visible ceiling panel
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(.9, .7), skylightMat);
+  panel.rotation.x = Math.PI/2; panel.position.set(x, RH-.01, z); scene.add(panel);
+  // Thin grid lines on ceiling panel
+});
+
+// Picture-rail spotlights (warm focused, one per frame area)
+const spotPositions = [
+  // Entry
+  [-4.0, RH-.3, 1.2], [4.0, RH-.3, 1.2],
+  [-4.0, RH-.3,-.7],  [4.0, RH-.3,-.7],
+  // Main gallery walls
+  [-5.0, RH-.3,-4.5], [5.0, RH-.3,-4.5],
+  [-5.0, RH-.3,-8.5], [5.0, RH-.3,-8.5],
+  [-5.0, RH-.3,-12.5],[5.0, RH-.3,-12.5],
+  [-5.0, RH-.3,-16.0],[5.0, RH-.3,-16.0],
+  // Side galleries
+  [-16.5,RH-.3,-7.5], [-16.5,RH-.3,-11],[-16.5,RH-.3,-14.5],
+  [ 16.5,RH-.3,-7.5], [ 16.5,RH-.3,-11],[ 16.5,RH-.3,-14.5],
+  [-12,  RH-.3,-6.4], [12,   RH-.3,-6.4],
+  // Back room
+  [-3.5, RH-.3,-18.4],[3.5,  RH-.3,-18.4],
+  [-5.5, RH-.3,-21.0],[5.5,  RH-.3,-21.0],
+  [0,    RH-.3,-23.5],
+];
+spotPositions.forEach(([x,y,z])=>{
+  const sl = new THREE.SpotLight(0xffeedd, 1.4, 6, Math.PI/5, .65);
+  sl.position.set(x,y,z);
+  sl.target.position.set(x > 0 ? x+1 : x < 0 ? x-1 : x, 0, z);
+  scene.add(sl); scene.add(sl.target);
+});
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  PASSAGE + ROOM DEFINITIONS                                 ║
+// ╚══════════════════════════════════════════════════════════════╝
+const PASSAGES = [
+  {axis:'z', wc: -2.0, ca:  0, ow: 3.2},  // entry → main
+  {axis:'x', wc: -6.5, ca:-11, ow: 3.0},  // main → left
+  {axis:'x', wc:  6.5, ca:-11, ow: 3.0},  // main → right
+  {axis:'z', wc:-18.0, ca:  0, ow: 3.2},  // main → back
+];
+
+const ROOMS = [
+  {x0:-4.5, x1: 4.5, z0:-2.0,  z1: 5.5},  // entry hall
+  {x0:-6.5, x1: 6.5, z0:-18.0, z1:-2.0},  // main gallery
+  {x0:-18,  x1:-6.5, z0:-16.0, z1:-6.0},  // left gallery
+  {x0: 6.5, x1: 18,  z0:-16.0, z1:-6.0},  // right gallery
+  {x0:-6.0, x1: 6.0, z0:-24.5, z1:-18.0}, // memories room
+];
+
+function getPassage(axis, coord, rMin, rMax){
+  for(const p of PASSAGES){
+    if(p.axis!==axis) continue;
+    if(Math.abs(p.wc-coord)>.38) continue;
+    if(p.ca>=rMin-.3 && p.ca<=rMax+.3) return p;
+  }
+  return null;
+}
+function split(lo, hi, p){
+  if(!p) return [[lo,hi]];
+  const a=p.ca-p.ow/2, b=p.ca+p.ow/2;
+  const out=[];
+  if(a>lo+.02) out.push([lo,a]);
+  if(b<hi-.02) out.push([b,hi]);
+  return out.length ? out : [[lo,hi]];
+}
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ROOM GEOMETRY                                              ║
+// ╚══════════════════════════════════════════════════════════════╝
+const doorH=2.8, headH=RH-doorH;
+
+function addPlane(w,h, x,y,z, ry, mat){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
+  m.position.set(x,y,z); m.rotation.y=ry; scene.add(m);
+}
+
+ROOMS.forEach(r=>{
+  const {x0,x1,z0,z1}=r;
+  const cx=(x0+x1)/2, cz=(z0+z1)/2, rw=x1-x0, rd=z1-z0;
+
+  // Floor
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(rw,rd),MF);
+  fl.rotation.x=-Math.PI/2; fl.position.set(cx,.001,cz); scene.add(fl);
+  // Ceiling
+  const cl=new THREE.Mesh(new THREE.PlaneGeometry(rw,rd),MCL);
+  cl.rotation.x=Math.PI/2; cl.position.set(cx,RH,cz); scene.add(cl);
+
+  // North wall (z=z0, faces +z into room)
+  ;(()=>{
+    const p=getPassage('z',z0,x0,x1);
+    split(x0,x1,p).forEach(([a,b])=>{
+      const sw=b-a, mx=(a+b)/2;
+      addPlane(sw,RH, mx,RH/2,z0, 0,MW);
+      addPlane(sw,.16, mx,.08,z0, 0,MM);
+      addPlane(sw,.14, mx,RH-.07,z0, 0,MM);
+    });
+    if(p){
+      addPlane(p.ow,headH, p.ca,RH-headH/2,z0, 0,MW);
+      [-p.ow/2,p.ow/2].forEach(ox=>{
+        const col=new THREE.Mesh(new THREE.BoxGeometry(.07,doorH,.07),MM);
+        col.position.set(p.ca+ox,doorH/2,z0); scene.add(col);
+      });
+    }
+  })();
+
+  // South wall (z=z1, faces -z)
+  ;(()=>{
+    const p=getPassage('z',z1,x0,x1);
+    split(x0,x1,p).forEach(([a,b])=>{
+      const sw=b-a, mx=(a+b)/2;
+      addPlane(sw,RH, mx,RH/2,z1, Math.PI,MW);
+      addPlane(sw,.16, mx,.08,z1, Math.PI,MM);
+      addPlane(sw,.14, mx,RH-.07,z1, Math.PI,MM);
+    });
+    if(p){
+      addPlane(p.ow,headH, p.ca,RH-headH/2,z1, Math.PI,MW);
+      [-p.ow/2,p.ow/2].forEach(ox=>{
+        const col=new THREE.Mesh(new THREE.BoxGeometry(.07,doorH,.07),MM);
+        col.position.set(p.ca+ox,doorH/2,z1); scene.add(col);
+      });
+    }
+  })();
+
+  // West wall (x=x0, faces +x)
+  ;(()=>{
+    const p=getPassage('x',x0,z0,z1);
+    split(z0,z1,p).forEach(([a,b])=>{
+      const sd=b-a, mz=(a+b)/2;
+      addPlane(sd,RH, x0,RH/2,mz, Math.PI/2,MW);
+      addPlane(sd,.16, x0,.08,mz, Math.PI/2,MM);
+      addPlane(sd,.14, x0,RH-.07,mz, Math.PI/2,MM);
+    });
+    if(p){
+      addPlane(p.ow,headH, x0,RH-headH/2,p.ca, Math.PI/2,MW);
+      [-p.ow/2,p.ow/2].forEach(oz=>{
+        const col=new THREE.Mesh(new THREE.BoxGeometry(.07,doorH,.07),MM);
+        col.position.set(x0,doorH/2,p.ca+oz); scene.add(col);
+      });
+    }
+  })();
+
+  // East wall (x=x1, faces -x)
+  ;(()=>{
+    const p=getPassage('x',x1,z0,z1);
+    split(z0,z1,p).forEach(([a,b])=>{
+      const sd=b-a, mz=(a+b)/2;
+      addPlane(sd,RH, x1,RH/2,mz, -Math.PI/2,MW);
+      addPlane(sd,.16, x1,.08,mz, -Math.PI/2,MM);
+      addPlane(sd,.14, x1,RH-.07,mz, -Math.PI/2,MM);
+    });
+    if(p){
+      addPlane(p.ow,headH, x1,RH-headH/2,p.ca, -Math.PI/2,MW);
+      [-p.ow/2,p.ow/2].forEach(oz=>{
+        const col=new THREE.Mesh(new THREE.BoxGeometry(.07,doorH,.07),MM);
+        col.position.set(x1,doorH/2,p.ca+oz); scene.add(col);
+      });
+    }
+  })();
+});
+
+// ── Pillars at passage edges ──────────────────────────
+[
+  [-1.7,-2],[1.7,-2],
+  [-6.5,-9.6],[-6.5,-12.4],
+  [ 6.5,-9.6],[ 6.5,-12.4],
+  [-1.7,-18],[1.7,-18],
+].forEach(([px,pz])=>{
+  const cyl=new THREE.Mesh(new THREE.CylinderGeometry(.11,.14,RH,10),MPI);
+  cyl.position.set(px,RH/2,pz); scene.add(cyl);
+  [[.32,RH-.05],[.32,.05]].forEach(([s,y])=>{
+    const b=new THREE.Mesh(new THREE.BoxGeometry(s,.09,s),MM);
+    b.position.set(px,y,pz); scene.add(b);
+  });
+});
+
+// ── Benches ───────────────────────────────────────────
+[[0,-8.2],[0,-13.8],[-12,-11],[12,-11],[0,-21]].forEach(([bx,bz])=>{
+  const top=new THREE.Mesh(new THREE.BoxGeometry(1.8,.08,.38),MBN);
+  top.position.set(bx,.43,bz); scene.add(top);
+  [-.72,.72].forEach(lx=>[-.10,.10].forEach(lz=>{
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(.062,.42,.062),smat(0x5a3820));
+    leg.position.set(bx+lx,.21,bz+lz); scene.add(leg);
+  }));
+});
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  PICTURE FRAMES                                             ║
+// ╚══════════════════════════════════════════════════════════════╝
+const FW=1.55, FH=1.16, FB=.06, FD=.036, FY=2.08;
+const EPS=.022; // nudge off wall to prevent z-fighting
+
+const FRAMES=[
+  // ══ ENTRY HALL — east + west walls only (4 frames, no changes) ══
+  {wx:-4.5, wz: 1.3, ry: Math.PI/2,  label:"The beginning of everything"},
+  {wx:-4.5, wz:-0.6, ry: Math.PI/2,  label:"Us, before we knew it was us"},
+  {wx: 4.5, wz: 1.3, ry:-Math.PI/2,  label:"That first smile"},
+  {wx: 4.5, wz:-0.6, ry:-Math.PI/2,  label:"The day I knew"},
+
+  // ══ MAIN GALLERY ══
+  // All 4 walls have passages so only E+W are usable (between the side passage gaps)
+  // Passage to side galleries: z=-9.5 to z=-12.5 — frames stay outside that range
+  {wx:-6.5, wz:-4.5, ry: Math.PI/2,  label:"Somewhere cold and beautiful"},
+  {wx:-6.5, wz:-7.8, ry: Math.PI/2,  label:"That trip we almost didn't take"},
+  {wx:-6.5, wz:-13.8,ry: Math.PI/2,  label:"Your laugh that started everything"},
+  {wx:-6.5, wz:-16.8,ry: Math.PI/2,  label:"The long drive home"},
+  {wx: 6.5, wz:-4.5, ry:-Math.PI/2,  label:"A Sunday morning"},
+  {wx: 6.5, wz:-7.8, ry:-Math.PI/2,  label:"The way you look at the sea"},
+  {wx: 6.5, wz:-13.8,ry:-Math.PI/2,  label:"You, always golden hour"},
+  {wx: 6.5, wz:-16.8,ry:-Math.PI/2,  label:"The night we stayed up talking"},
+
+  // ══ LEFT GALLERY (entrance = east wall x=-6.5) ══
+  // Paint: west (outer), north, south walls only
+  {wx:-18.0, wz:-7.5, ry: Math.PI/2,  label:"Dancing in the kitchen"},
+  {wx:-18.0, wz:-11.0,ry: Math.PI/2,  label:"The secret garden"},
+  {wx:-18.0, wz:-14.5,ry: Math.PI/2,  label:"Somewhere we'd never been"},
+  {wx:-15.0, wz:-6.0, ry: 0,           label:"Three years and counting"},
+  {wx:-10.0, wz:-6.0, ry: 0,           label:"The quiet afternoons"},
+  {wx:-15.0, wz:-16.0,ry: Math.PI,     label:"Still my favourite person"},
+  {wx:-10.0, wz:-16.0,ry: Math.PI,     label:"Everywhere feels like home with you"},
+
+  // ══ RIGHT GALLERY (entrance = west wall x=6.5) ══
+  // Paint: east (outer), north, south walls only
+  {wx: 18.0, wz:-7.5, ry:-Math.PI/2,  label:"Our favourite corner of the city"},
+  {wx: 18.0, wz:-11.0,ry:-Math.PI/2,  label:"Summer, unplanned"},
+  {wx: 18.0, wz:-14.5,ry:-Math.PI/2,  label:"Where we always end up"},
+  {wx: 15.0, wz:-6.0, ry: 0,           label:"The best decision I ever made"},
+  {wx: 10.0, wz:-6.0, ry: 0,           label:"Golden hour, every hour"},
+  {wx: 15.0, wz:-16.0,ry: Math.PI,     label:"Every ordinary day with you"},
+  {wx: 10.0, wz:-16.0,ry: Math.PI,     label:"The longest conversations"},
+
+  // ══ BACK / MEMORIES ROOM (entrance = north wall z=-18) ══
+  // Paint: south (hero), east, west walls only
+  {wx:-6.0,  wz:-20.0,ry: Math.PI/2,  label:"Where it all began"},
+  {wx:-6.0,  wz:-22.5,ry: Math.PI/2,  label:"Our favourite adventure"},
+  {wx: 6.0,  wz:-20.0,ry:-Math.PI/2,  label:"The middle of all of it"},
+  {wx: 6.0,  wz:-22.5,ry:-Math.PI/2,  label:"The trip that changed us"},
+  {wx: 0,    wz:-24.49,ry: Math.PI,    label:"You & Me \u2014 Forever", hero:true},
+];
+
+const frameObjs=[], photoMats=[];
+
+function placeholder(label){
+  const cv=document.createElement('canvas'); cv.width=512; cv.height=384;
+  const ctx=cv.getContext('2d');
+  // Soft warm white background
+  ctx.fillStyle='#f5f1eb'; ctx.fillRect(0,0,512,384);
+  ctx.strokeStyle='#d0c0a8'; ctx.lineWidth=1.5; ctx.strokeRect(10,10,492,364);
+  ctx.fillStyle='#c8b898'; ctx.font='48px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('\u{1F339}',256,130);
+  ctx.fillStyle='#a89880'; ctx.font='italic 14px Georgia';
+  ctx.fillText('[ upload a photo ]',256,200);
+  ctx.fillStyle='#907860'; ctx.font='italic 12.5px Georgia';
+  const words=label.split(' '); let line='',lines=[];
+  words.forEach(w=>{ const t=line+w+' '; if(ctx.measureText(t).width>440&&line){lines.push(line.trim());line=w+' ';}else line=t; });
+  lines.push(line.trim());
+  lines.forEach((l,i)=>ctx.fillText('\u201C'+l+'\u201D',256,260+i*18));
+  return new THREE.CanvasTexture(cv);
+}
+
+const loader=new THREE.TextureLoader();
+
+function buildFrame(def,idx){
+  const fw=def.hero?FW*1.5:FW, fh=def.hero?FH*1.5:FH;
+  const fb=def.hero?FB*1.3:FB, fy=def.hero?FY+.3:FY;
+  const g=new THREE.Group();
+
+  // Photo plane — local z=0
+  const tex=placeholder(def.label);
+  const pm=new THREE.MeshStandardMaterial({map:tex, roughness:.8});
+  const photo=new THREE.Mesh(new THREE.PlaneGeometry(fw,fh),pm);
+  photo.position.z=0;
+  g.add(photo);
+
+  // Gold frame bars — protrude in front (local +z)
+  const bz=FD*.5+.003;
+  [
+    [fw+fb*2, fb,         0,          fh/2+fb/2, bz],
+    [fw+fb*2, fb,         0,         -fh/2-fb/2, bz],
+    [fb,      fh+fb*2,  -fw/2-fb/2,  0,          bz],
+    [fb,      fh+fb*2,   fw/2+fb/2,  0,          bz],
+  ].forEach(([bw,bh,bx,by,bz2])=>{
+    const bar=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,FD),MFR);
+    bar.position.set(bx,by,bz2); g.add(bar);
+  });
+
+  // Nudge group off wall along wall-normal (sin/cos of ry)
+  const sn=Math.sin(def.ry), cs=Math.cos(def.ry);
+  g.position.set(def.wx+sn*EPS, fy, def.wz+cs*EPS);
+  g.rotation.y=def.ry;
+  g._label=def.label; g._pm=pm;
+  scene.add(g); frameObjs.push(g); photoMats.push(pm);
+
+  // Load from path if available
+  const path=PHOTO_PATHS[idx];
+  if(path){
+    loader.load(path, t=>{
+      t.encoding=THREE.sRGBEncoding;
+      pm.map=t; pm.needsUpdate=true;
+    }, undefined, ()=>{}); // silently skip missing files
+  }
+}
+FRAMES.forEach((d,i)=>buildFrame(d,i));
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  COLLISION                                                  ║
+// ╚══════════════════════════════════════════════════════════════╝
+const CSEGS=[];
+const PR=.36;
+
+ROOMS.forEach(r=>{
+  const {x0,x1,z0,z1}=r;
+  const pN=getPassage('z',z0,x0,x1), pS=getPassage('z',z1,x0,x1);
+  const pW=getPassage('x',x0,z0,z1), pE=getPassage('x',x1,z0,z1);
+  split(x0,x1,pN).forEach(([a,b])=>CSEGS.push({axis:'z',coord:z0,sMin:a,sMax:b,dir:+1}));
+  split(x0,x1,pS).forEach(([a,b])=>CSEGS.push({axis:'z',coord:z1,sMin:a,sMax:b,dir:-1}));
+  split(z0,z1,pW).forEach(([a,b])=>CSEGS.push({axis:'x',coord:x0,sMin:a,sMax:b,dir:+1}));
+  split(z0,z1,pE).forEach(([a,b])=>CSEGS.push({axis:'x',coord:x1,sMin:a,sMax:b,dir:-1}));
+});
+
+function resolveMove(ox,oz,nx,nz){
+  for(let pass=0;pass<2;pass++){
+    for(const w of CSEGS){
+      if(w.axis==='z'){
+        if(nx<w.sMin-PR||nx>w.sMax+PR) continue;
+        if(w.dir>0 && oz>=w.coord+PR && nz < w.coord+PR) nz = w.coord+PR;
+        if(w.dir<0 && oz<=w.coord-PR && nz > w.coord-PR) nz = w.coord-PR;
+      } else {
+        if(nz<w.sMin-PR||nz>w.sMax+PR) continue;
+        if(w.dir>0 && ox>=w.coord+PR && nx < w.coord+PR) nx = w.coord+PR;
+        if(w.dir<0 && ox<=w.coord-PR && nx > w.coord-PR) nx = w.coord-PR;
+      }
+    }
+  }
+  // Hard outer bounds — player can never leave the museum footprint entirely
+  nx = Math.max(-17.6, Math.min(17.6, nx));
+  nz = Math.max(-24.1, Math.min(5.1,  nz));
+  return [nx,nz];
+}
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  INPUT                                                      ║
+// ╚══════════════════════════════════════════════════════════════╝
+const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true; e.preventDefault&&['Space','ArrowUp','ArrowDown'].includes(e.code)&&e.preventDefault();});
+addEventListener('keyup',  e=>{keys[e.code]=false;});
+
+let yaw=0, pitch=0, locked=false;
+canvas.addEventListener('click',()=>{if(started)canvas.requestPointerLock();});
+document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===canvas);
+document.addEventListener('mousemove',e=>{
+  if(!locked)return;
+  yaw-=e.movementX*.002; pitch-=e.movementY*.002;
+  pitch=Math.max(-1.1,Math.min(1.1,pitch));
+});
+let lT=null;
+canvas.addEventListener('touchmove',e=>{
+  if(!started)return;
+  const t=e.touches[0];
+  if(lT){yaw-=(t.clientX-lT.x)*.005;pitch-=(t.clientY-lT.y)*.005;pitch=Math.max(-1.1,Math.min(1.1,pitch));}
+  lT={x:t.clientX,y:t.clientY};
+},{passive:true});
+canvas.addEventListener('touchend',()=>lT=null);
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  GAME LOOP                                                  ║
+// ╚══════════════════════════════════════════════════════════════╝
+let started=false;
+const clock=new THREE.Clock();
+const vF=new THREE.Vector3(), vR=new THREE.Vector3();
+const flEl=document.getElementById('fl');
+const FRAME_MS=1000/30; let lastT=0;
+
+function loop(now){
+  requestAnimationFrame(loop);
+  if(now-lastT<FRAME_MS)return;
+  lastT=now;
+  renderer.render(scene,camera);
+  if(!started)return;
+  const dt=Math.min(clock.getDelta(),.05);
+  camera.rotation.order='YXZ';
+  camera.rotation.y=yaw; camera.rotation.x=pitch;
+  camera.getWorldDirection(vF); vF.y=0; vF.normalize();
+  vR.crossVectors(vF,new THREE.Vector3(0,1,0));
+
+  let nx=camera.position.x, nz=camera.position.z;
+  const sp=4.5*dt;
+  if(keys.KeyW||keys.ArrowUp)    {nx+=vF.x*sp;nz+=vF.z*sp;}
+  if(keys.KeyS||keys.ArrowDown)  {nx-=vF.x*sp;nz-=vF.z*sp;}
+  if(keys.KeyA||keys.ArrowLeft)  {nx-=vR.x*sp;nz-=vR.z*sp;}
+  if(keys.KeyD||keys.ArrowRight) {nx+=vR.x*sp;nz+=vR.z*sp;}
+
+  [nx,nz]=resolveMove(camera.position.x,camera.position.z,nx,nz);
+  camera.position.x=nx; camera.position.z=nz;
+
+  let near=null,nearD=3.0;
+  frameObjs.forEach(f=>{const d=camera.position.distanceTo(f.position);if(d<nearD){near=f;nearD=d;}});
+  flEl.style.opacity=near?'1':'0';
+  if(near)flEl.textContent='\u201C'+near._label+'\u201D';
+}
+loop(0);
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  WELCOME SCREEN                                             ║
+// ╚══════════════════════════════════════════════════════════════╝
+document.getElementById('btn').addEventListener('click',()=>{
+  const w=document.getElementById('welcome'); w.style.opacity='0';
+  setTimeout(()=>{
+    w.style.display='none';
+    document.getElementById('xh').style.display='block';
+    document.getElementById('hud').style.display='block';
+    started=true; clock.start(); canvas.requestPointerLock();
+    startMusic();
+  },1600);
+});
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  MUSIC — loads from MUSIC_PATHS array defined at top        ║
+// ╚══════════════════════════════════════════════════════════════╝
+let actx=null, curS=0, curSrc=null, gNode=null, isPlaying=false, bufs=[];
+
+function startMusic(){
+  if(!MUSIC_PATHS.length) return;
+  actx=new(AudioContext||webkitAudioContext)();
+  gNode=actx.createGain(); gNode.gain.value=.55; gNode.connect(actx.destination);
+  bufs=new Array(MUSIC_PATHS.length);
+  MUSIC_PATHS.forEach((path,i)=>{
+    fetch(path)
+      .then(r=>r.arrayBuffer())
+      .then(ab=>actx.decodeAudioData(ab))
+      .then(buf=>{ bufs[i]=buf; if(i===0) playAt(0); })
+      .catch(()=>{}); // silently skip missing files
+  });
+}
+function playAt(i){
+  if(!actx||!bufs[i])return;
+  try{if(curSrc)curSrc.stop();}catch(e){}
+  curSrc=actx.createBufferSource(); curSrc.buffer=bufs[i]; curSrc.connect(gNode);
+  curSrc.onended=()=>{curS=(curS+1)%bufs.length; playAt(curS);};
+  curSrc.start(0); isPlaying=true;
+}
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  RESIZE                                                     ║
+// ╚══════════════════════════════════════════════════════════════╝
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
