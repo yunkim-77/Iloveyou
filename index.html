@@ -496,20 +496,21 @@ function buildFrame(def,idx){
     let fw, fh;
     if(aspect >= MAX_W/MAX_H){ fw=MAX_W; fh=MAX_W/aspect; }
     else                      { fh=MAX_H; fw=MAX_H*aspect; }
-    // Replace geometry with exact size — no scaling means no oversized edges that bleed white
+    // Replace photo geometry with exact size
     photo.geometry.dispose();
     photo.geometry = new THREE.PlaneGeometry(fw, fh);
-    // Reposition + rescale each frame bar
-    const newSizes=[
-      {w:fw+fb*2, h:fb,       x:0,          y:fh/2+fb/2},
-      {w:fw+fb*2, h:fb,       x:0,          y:-fh/2-fb/2},
-      {w:fb,      h:fh+fb*2,  x:-fw/2-fb/2, y:0},
-      {w:fb,      h:fh+fb*2,  x: fw/2+fb/2, y:0},
+    // Replace each bar geometry with exact size too
+    const barDefs=[
+      [fw+fb*2, fb,       0,           fh/2+fb/2 ],
+      [fw+fb*2, fb,       0,          -fh/2-fb/2 ],
+      [fb,      fh+fb*2, -fw/2-fb/2,  0          ],
+      [fb,      fh+fb*2,  fw/2+fb/2,  0          ],
     ];
     bars.forEach((bar,i)=>{
-      bar.scale.set(newSizes[i].w / (i<2 ? MAX_W+fb*2 : fb),
-                    newSizes[i].h / (i<2 ? fb : MAX_H+fb*2), 1);
-      bar.position.set(newSizes[i].x, newSizes[i].y, bz);
+      bar.geometry.dispose();
+      bar.geometry = new THREE.BoxGeometry(barDefs[i][0], barDefs[i][1], FD);
+      bar.scale.set(1,1,1); // reset any previous scale
+      bar.position.set(barDefs[i][2], barDefs[i][3], bz);
     });
     spot.position.set(0, fh/2+1.9, 0.7);
   }
