@@ -441,7 +441,8 @@ const frameObjs=[], photoMats=[];
 function placeholder(label){
   const cv=document.createElement('canvas'); cv.width=512; cv.height=384;
   const ctx=cv.getContext('2d');
-  // Soft warm white background
+  // Transparent background so no white edges bleed through when photo loads
+  ctx.clearRect(0,0,512,384);
   ctx.fillStyle='#f5f1eb'; ctx.fillRect(0,0,512,384);
   ctx.strokeStyle='#d0c0a8'; ctx.lineWidth=1.5; ctx.strokeRect(10,10,492,364);
   ctx.fillStyle='#c8b898'; ctx.font='48px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -495,14 +496,15 @@ function buildFrame(def,idx){
     let fw, fh;
     if(aspect >= MAX_W/MAX_H){ fw=MAX_W; fh=MAX_W/aspect; }
     else                      { fh=MAX_H; fw=MAX_H*aspect; }
-    // Scale the photo mesh directly — simpler and more reliable than swapping geometry
-    photo.scale.set(fw/MAX_W, fh/MAX_H, 1);
+    // Replace geometry with exact size — no scaling means no oversized edges that bleed white
+    photo.geometry.dispose();
+    photo.geometry = new THREE.PlaneGeometry(fw, fh);
     // Reposition + rescale each frame bar
     const newSizes=[
-      {w:fw+fb*2, h:fb,       x:0,          y:fh/2+fb/2},  // top
-      {w:fw+fb*2, h:fb,       x:0,          y:-fh/2-fb/2}, // bottom
-      {w:fb,      h:fh+fb*2,  x:-fw/2-fb/2, y:0},          // left
-      {w:fb,      h:fh+fb*2,  x: fw/2+fb/2, y:0},          // right
+      {w:fw+fb*2, h:fb,       x:0,          y:fh/2+fb/2},
+      {w:fw+fb*2, h:fb,       x:0,          y:-fh/2-fb/2},
+      {w:fb,      h:fh+fb*2,  x:-fw/2-fb/2, y:0},
+      {w:fb,      h:fh+fb*2,  x: fw/2+fb/2, y:0},
     ];
     bars.forEach((bar,i)=>{
       bar.scale.set(newSizes[i].w / (i<2 ? MAX_W+fb*2 : fb),
@@ -710,6 +712,3 @@ addEventListener('resize',()=>{
 </script>
 </body>
 </html>
-
-
-
