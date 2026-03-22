@@ -117,8 +117,8 @@ const MUSIC_PATHS = [
 // ║  RENDERER                                                   ║
 // ╚══════════════════════════════════════════════════════════════╝
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({canvas, antialias:false, powerPreference:'low-power'});
-renderer.setPixelRatio(1);
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.physicallyCorrectLights = true;
@@ -519,8 +519,7 @@ function buildFrame(def,idx){
   g._label=def.label; g._pm=pm;
   scene.add(g); frameObjs.push(g); photoMats.push(pm);
 
-  // Load photo — downsample to max 1024px before uploading to GPU
-  const MAX_TEX = 1024;
+  // Load photo — fetch+blob works on both file:// and https://
   const path=PHOTO_PATHS[idx];
   if(path){
     fetch(path)
@@ -530,20 +529,11 @@ function buildFrame(def,idx){
         const img=new Image();
         img.onload=()=>{
           applyAspect(img.naturalWidth, img.naturalHeight);
-          // Downsample to max MAX_TEX — reduces GPU memory 10-15x for phone photos
-          const scale = Math.min(1, MAX_TEX/Math.max(img.naturalWidth, img.naturalHeight));
-          const cw = Math.round(img.naturalWidth  * scale);
-          const ch = Math.round(img.naturalHeight * scale);
-          const cv = document.createElement('canvas');
-          cv.width=cw; cv.height=ch;
-          cv.getContext('2d').drawImage(img, 0, 0, cw, ch);
-          // Dispose placeholder before assigning new texture
-          if(pm.map) pm.map.dispose();
-          const tex = new THREE.CanvasTexture(cv);
-          tex.encoding = THREE.sRGBEncoding;
-          pm.map = tex;
-          pm.needsUpdate = true;
-          URL.revokeObjectURL(url);
+          new THREE.TextureLoader().load(url, t=>{
+            t.encoding=THREE.sRGBEncoding;
+            pm.map=t; pm.needsUpdate=true;
+            URL.revokeObjectURL(url);
+          });
         };
         img.src=url;
       })
@@ -710,6 +700,3 @@ addEventListener('resize',()=>{
 </script>
 </body>
 </html>
-
-
-
