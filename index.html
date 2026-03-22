@@ -9,6 +9,18 @@
 body { background:#1a1008; overflow:hidden; font-family:'Georgia',serif; }
 #c { display:block; width:100vw; height:100vh; }
 
+#mobile-block {
+  display:none;
+  position:fixed; inset:0; z-index:999;
+  background:linear-gradient(160deg,#1a0a02,#2e1506 50%,#1a0902);
+  flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:2.5rem; color:#f0ddb0;
+}
+#mobile-block .rose { font-size:2.4rem; margin-bottom:1.2rem; }
+#mobile-block h1 { font-size:1.6rem; font-weight:400; letter-spacing:.08em; margin-bottom:.8rem; }
+#mobile-block .divider { width:80px; height:1px; background:linear-gradient(90deg,transparent,#c49a50,transparent); margin:1.2rem auto; }
+#mobile-block p { font-size:.95rem; color:#d4a86a; line-height:1.9; font-style:italic; max-width:320px; }
+
 #welcome {
   position:fixed; inset:0;
   background:linear-gradient(160deg,#1a0a02,#2e1506 50%,#1a0902);
@@ -39,6 +51,13 @@ body { background:#1a1008; overflow:hidden; font-family:'Georgia',serif; }
 </style>
 </head>
 <body>
+
+<div id="mobile-block">
+  <div class="rose">&#127801;</div>
+  <h1>Museum of Us</h1>
+  <div class="divider"></div>
+  <p>This experience is designed for desktop &mdash; please visit on a computer to explore the gallery.</p>
+</div>
 
 <div id="welcome">
   <div class="rose">&#127801;</div>
@@ -664,6 +683,15 @@ function playAt(i){
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  RESIZE                                                     ║
 // ╚══════════════════════════════════════════════════════════════╝
+// ── Mobile detection ──────────────────────────────────
+const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent)
+  || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+if(isMobile){
+  document.getElementById('mobile-block').style.display='flex';
+  document.getElementById('welcome').style.display='none';
+  document.getElementById('c').style.display='none';
+}
+
 addEventListener('resize',()=>{
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
