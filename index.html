@@ -120,66 +120,68 @@ camera.position.set(0, 1.7, 4.2);
 function smat(hex, rough=.9, metal=0){
   return new THREE.MeshStandardMaterial({color:new THREE.Color(hex), roughness:rough, metalness:metal});
 }
-// Soft grey-white walls (like the reference)
-const MW  = smat(0xeae8e4, .94);
-// Warm herringbone-ish parquet floor
+// DoubleSide so walls are visible from both sides (fixes transparent wall bug)
+const MW  = new THREE.MeshStandardMaterial({color:new THREE.Color(0xeae8e4), roughness:.94, side:THREE.DoubleSide});
 const MF  = smat(0xc8a060, .97);
-// Off-white ceiling
-const MCL = smat(0xf0eeea, 1.0);
-// White baseboard moulding
-const MM  = smat(0xe8e6e0, .75);
-// Gold frame
+const MCL = new THREE.MeshStandardMaterial({color:new THREE.Color(0xf0eeea), roughness:1.0, side:THREE.DoubleSide});
+const MM  = new THREE.MeshStandardMaterial({color:new THREE.Color(0xe8e6e0), roughness:.75, side:THREE.DoubleSide});
 const MFR = smat(0xb8920e, .18, .82);
-// Pillar
 const MPI = smat(0xeae6e0, .82);
-// Bench dark wood
 const MBN = smat(0x7a5030, .88);
 
-const RH = 4.2; // room height
+const RH = 4.2;
 
 // ╔══════════════════════════════════════════════════════════════╗
-// ║  LIGHTING — soft gallery, skylight feel                     ║
+// ║  LIGHTING — natural skylight windows                        ║
 // ╚══════════════════════════════════════════════════════════════╝
-// Low ambient — walls get most light from skylight panels + spots
 scene.add(new THREE.AmbientLight(0xfff8f0, 0.55));
 
-// Skylight panels (rectangular area-light simulation with multiple soft points)
-// These give the bright ceiling-diffused look from the reference image
-const skylightPositions = [
-  // Entry hall
-  [-1.5, RH-.08, 2.5], [1.5, RH-.08, 2.5],
-  [-1.5, RH-.08, 0.5], [1.5, RH-.08, 0.5],
-  // Main gallery
-  [-2, RH-.08, -4],  [2, RH-.08, -4],
-  [-2, RH-.08, -7.5],[2, RH-.08, -7.5],
-  [-2, RH-.08,-11],  [2, RH-.08,-11],
-  [-2, RH-.08,-14.5],[2, RH-.08,-14.5],
-  // Left gallery (x:-30 to -6.5, z:-18 to -2)
-  [-13, RH-.08, -5], [-13, RH-.08,-10], [-13, RH-.08,-15],
-  [-20, RH-.08, -5], [-20, RH-.08,-10], [-20, RH-.08,-15],
-  [-27, RH-.08, -5], [-27, RH-.08,-10], [-27, RH-.08,-15],
-  // Right gallery
-  [ 13, RH-.08, -5], [ 13, RH-.08,-10], [ 13, RH-.08,-15],
-  [ 20, RH-.08, -5], [ 20, RH-.08,-10], [ 20, RH-.08,-15],
-  [ 27, RH-.08, -5], [ 27, RH-.08,-10], [ 27, RH-.08,-15],
-  // Back room
-  [-3, RH-.08,-22], [3, RH-.08,-22],
-  [-3, RH-.08,-27], [3, RH-.08,-27],
+const skylightDefs = [
+  [0,    1.5,  3.5, 2.0],
+  [0,   -6.0,  3.5, 2.0],
+  [0,  -14.0,  3.5, 2.0],
+  [-18, -6.0,  4.0, 2.2],
+  [-18,-14.0,  4.0, 2.2],
+  [ 18, -6.0,  4.0, 2.2],
+  [ 18,-14.0,  4.0, 2.2],
+  [0,  -25.0,  3.5, 2.0],
 ];
 
-// Skylight glow panels on ceiling (emissive white rectangles)
-const skylightMat = new THREE.MeshStandardMaterial({
-  color: 0xffffff, emissive: new THREE.Color(0xfff8ee), emissiveIntensity: 1.2, roughness:1
+// Sky pane — cool overcast daylight blue-white
+const skyMat   = new THREE.MeshBasicMaterial({color:0x93daff});
+// Window frame — matches ceiling, slightly darker
+const winFrame = new THREE.MeshStandardMaterial({color:new THREE.Color(0xcac6c0), roughness:.85});
+const FT = 0.1; // frame thickness
+
+skylightDefs.forEach(([x,z,pw,pd])=>{
+  // Glass pane (inset from frame)
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(pw - FT*2, pd - FT*2), skyMat);
+  glass.rotation.x = Math.PI/2;
+  glass.position.set(x, RH-.004, z);
+  scene.add(glass);
+
+  // Frame border: top, bottom, left, right
+  [
+    [pw, FT,  x,                  z - pd/2 + FT/2],
+    [pw, FT,  x,                  z + pd/2 - FT/2],
+    [FT, pd,  x - pw/2 + FT/2,   z               ],
+    [FT, pd,  x + pw/2 - FT/2,   z               ],
+  ].forEach(([bw,bd,bx,bz])=>{
+    const b = new THREE.Mesh(new THREE.BoxGeometry(bw,.07,bd), winFrame);
+    b.position.set(bx, RH-.025, bz); scene.add(b);
+  });
+
+  // Cross dividers — give it a window-pane look
+  const ch = new THREE.Mesh(new THREE.BoxGeometry(pw, .07, FT*.5), winFrame);
+  ch.position.set(x, RH-.025, z); scene.add(ch);
+  const cv = new THREE.Mesh(new THREE.BoxGeometry(FT*.5, .07, pd), winFrame);
+  cv.position.set(x, RH-.025, z); scene.add(cv);
+
+  // Cool-white daylight beneath each window
+  const l = new THREE.PointLight(0xe8f0ff, 0.65, 22);
+  l.position.set(x, RH-.2, z); scene.add(l);
 });
-skylightPositions.forEach(([x,y,z])=>{
-  // Downward soft point
-  const l = new THREE.PointLight(0xfff8ee, 1.1, 10, 2);
-  l.position.set(x, y, z); scene.add(l);
-  // Visible ceiling panel
-  const panel = new THREE.Mesh(new THREE.PlaneGeometry(.9, .7), skylightMat);
-  panel.rotation.x = Math.PI/2; panel.position.set(x, RH-.01, z); scene.add(panel);
-  // Thin grid lines on ceiling panel
-});
+
 
 
 
@@ -358,7 +360,7 @@ const FRAMES=[
   // ══ ENTRY HALL (x:-4.5→4.5, z:-2→5.5) ══
   {wx:-4.5, wz: 3.5, ry: Math.PI/2,  label:"We're so cute (I'm taller mwehehe)"},
   {wx:-4.5, wz: 0.5, ry: Math.PI/2,  label:"Flowers for my favorite human"},
-  {wx: 4.5, wz: 3.5, ry:-Math.PI/2,  label:"The moment I knew"},
+  {wx: 4.5, wz: 3.5, ry:-Math.PI/2,  label:"The moment I knew I was going to fall in love"},
   {wx: 4.5, wz: 0.5, ry:-Math.PI/2,  label:"Errm.. Actually.."},
 
   // ══ MAIN GALLERY (x:-6.5→6.5, z:-18→-2) ══
